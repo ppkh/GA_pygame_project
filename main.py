@@ -1,4 +1,5 @@
 import pygame
+from pygame import *
 import random
 import os
 import sys
@@ -39,7 +40,7 @@ class Enemy(Ball):
             self.vy = random.randrange(-2, 2)
 
     def update(self):
-        #self.rect = self.rect.move(self.vx, self.vy)
+        # self.rect = self.rect.move(self.vx, self.vy)
 
         if pygame.sprite.spritecollideany(self, horizontal_borders):
             self.vy = -self.vy
@@ -53,52 +54,77 @@ class Enemy(Ball):
         if pygame.sprite.spritecollideany(self, enemy_circles):
             for i in pygame.sprite.groupcollide(curcircle, enemy_circles, False, False)[self]:
                 i.vx, i.vy, self.vx, self.vy = self.vx, self.vy, i.vx, i.vy
-                #if not (
-                #        pygame.sprite.spritecollideany(self, horizontal_borders)
-                #        or pygame.sprite.spritecollideany(self, vertical_borders)):
-                #    i.rect = i.rect.move(i.vx, i.vy)
-                #    self.rect = self.rect.move(self.vx, self.vy)
         curcircle.empty()
         circles.add(self)
-        # if pygame.sprite.spritecollideany(self, enemy_circles) and not (
-        #        pygame.sprite.spritecollideany(self, horizontal_borders)
-        #        or pygame.sprite.spritecollideany(self, vertical_borders)):
-        #    self.rect = self.rect.move(self.vx, self.vy)
+        # if self.rect.x >= width or self.rect.y >= height or self.rect.x <= 0 or self.rect.y <= 0:
+        #    self.rect = pygame.Rect(random.randint(30, width - 30), random.randint(30, width - 30), 2 * self.radius,
+        #                            2 * self.radius)
+        if self.rect.x <= 0:
+            self.rect.x = 50
+        if self.rect.y <= 0:
+            self.rect.y = 50
+        if self.rect.x >= width:
+            self.rect.x = width - 50
+        if self.rect.y >= height:
+            self.rect.y = height - 50
 
 
 class Border(pygame.sprite.Sprite):
     def __init__(self, x1, y1, x2, y2):
         super().__init__(all_sprites)
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
         if x1 == x2:
             self.add(vertical_borders)
-            self.image = pygame.Surface([1, y2 - y1])
+            self.image = pygame.Surface([0, y2 - y1])
+            self.rect = None
             self.rect = pygame.Rect(x1, y1, 1, y2 - y1)
         else:
             self.add(horizontal_borders)
-            self.image = pygame.Surface([x2 - x1, 1])
+            self.image = pygame.Surface([x2 - x1, 0])
+            self.rect = None
             self.rect = pygame.Rect(x1, y1, x2 - x1, 1)
 
 
 if __name__ == '__main__':
     pygame.init()
-    width = 1240
-    height = 960
+    width = 600
+    height = 600
     size = width, height
-    screen = pygame.display.set_mode(size)
+    screen = pygame.display.set_mode(size, RESIZABLE)
     clock = pygame.time.Clock()
     Border(5, 5, width - 5, 5)
     Border(5, height - 5, width - 5, height - 5)
     Border(5, 5, 5, height - 5)
     Border(width - 5, 5, width - 5, height - 5)
     Enemy_balls = []
-    for i in range(5):
-        Enemy_balls.append(Enemy(20, random.randint(20, width - 20), random.randint(20, height - 20)))
+    for i in range(width * height // 72000):
+        Enemy_balls.append(Enemy(20, random.randint(50, width - 50), random.randint(50, height - 50)))
     running = True
     while running:
         screen.fill('white')
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+
+                width, height = event.w, event.h
+                Enemy_balls.clear()
+                for i in enemy_circles:
+                    i.kill()
+                enemy_circles.empty()
+                for i in range(width * height // 72000):
+                    Enemy_balls.append(Enemy(20, random.randint(50, width - 50), random.randint(50, height - 50)))
+
+                horizontal_borders.empty()
+                vertical_borders.empty()
+                Border(5, 5, width - 5, 5)
+                Border(5, height - 5, width - 5, height - 5)
+                Border(5, 5, 5, height - 5)
+                Border(width - 5, 5, width - 5, height - 5)
 
         all_sprites.draw(screen)
         all_sprites.update()
