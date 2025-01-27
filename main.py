@@ -5,6 +5,10 @@ import os
 import sys
 
 lifes = 3
+width = 600
+height = 600
+point_balls_count = 0
+points = 0
 all_sprites = pygame.sprite.Group()
 main_character = pygame.sprite.Group()
 enemy_circles = pygame.sprite.Group()
@@ -13,8 +17,6 @@ stars = pygame.sprite.Group()
 circles = pygame.sprite.Group()
 horizontal_borders = pygame.sprite.Group()
 vertical_borders = pygame.sprite.Group()
-colors = ['red',
-          'green', 'blue', 'yellow', 'purple', 'black', 'orange', 'cyan', 'brown']
 
 
 def load_image(name):
@@ -77,8 +79,8 @@ class Enemy(Ball):
 
 
 class Stars(Ball):
-    def __init__(self, x, y):
-        super().__init__(1, x, y)
+    def __init__(self):
+        super().__init__(1, random.randint(50, width - 50), random.randint(50, width - 50))
         self.add(stars)
         pygame.draw.circle(self.image, pygame.Color('white'),
                            (self.radius, self.radius), self.radius)
@@ -91,54 +93,70 @@ class Main_char(Ball):
         self.add(main_character)
         pygame.draw.circle(self.image, pygame.Color('yellow'),
                            (self.radius, self.radius), self.radius)
-        self.vx = 1
-        self.vy = 1
+        self.v = 1
 
         self.last_touch = pygame.time.get_ticks()
 
     def update(self):
         if pygame.sprite.spritecollideany(self, enemy_circles) and (
-                pygame.time.get_ticks() - self.last_touch) / 1000 >= 2.5:
+                pygame.time.get_ticks() - self.last_touch) / 1000 >= 1.5:
             global lifes
             lifes -= 1
             self.last_touch = pygame.time.get_ticks()
 
-    def up(self):
-        self.rect = self.rect.move(0, -self.vy)
+    def up(self, v):
+        self.v = v
+        self.rect = self.rect.move(0, -self.v)
         if pygame.sprite.spritecollideany(self, horizontal_borders):
-            self.rect = self.rect.move(0, self.vy)
+            self.rect = self.rect.move(0, self.v)
 
-    def down(self):
-        self.rect = self.rect.move(0, self.vy)
+    def down(self, v):
+        self.v = v
+        self.rect = self.rect.move(0, self.v)
         if pygame.sprite.spritecollideany(self, horizontal_borders):
-            self.rect = self.rect.move(0, -self.vy)
+            self.rect = self.rect.move(0, -self.v)
 
-    def left(self):
-        self.rect = self.rect.move(-self.vx, 0)
+    def left(self, v):
+        self.v = v
+        self.rect = self.rect.move(-self.v, 0)
         if pygame.sprite.spritecollideany(self, vertical_borders):
-            self.rect = self.rect.move(self.vx, 0)
+            self.rect = self.rect.move(self.v, 0)
 
-    def right(self):
-        self.rect = self.rect.move(self.vx, 0)
+    def right(self, v):
+        self.v = v
+        self.rect = self.rect.move(self.v, 0)
         if pygame.sprite.spritecollideany(self, vertical_borders):
-            self.rect = self.rect.move(-self.vx, 0)
+            self.rect = self.rect.move(-self.v, 0)
 
 
 class Healthbar():
     def __init__(self):
         self.image = load_image('Heart.png').convert_alpha()
-        # if height * width <= 921600:
-        #self.image = pygame.transform.scale(self.image, (width // 15, height // 15))
 
     def update(self):
         global lifes
         if height * width <= 921600:
-            self.image = pygame.transform.scale(self.image, (width // 15, height// 15))
+            self.image = pygame.transform.scale(self.image, (width // 15, height // 15))
             for i in range(lifes):
                 screen.blit(self.image, (width // 20 + (i * width // 15), height // 20))
         else:
             for i in range(lifes):
                 screen.blit(self.image, (width // 20 + (i * width // 35), height // 20))
+
+
+class Pointballs(Ball):
+    def __init__(self):
+        super().__init__(5, random.randint(50, width - 50), random.randint(50, width - 50))
+        self.add(point_circles)
+        pygame.draw.circle(self.image, pygame.Color('orange'),
+                           (self.radius, self.radius), self.radius)
+
+    def update(self):
+        if pygame.sprite.spritecollideany(self, main_character):
+            global points, point_balls_count
+            points += 1
+            point_balls_count -= 1
+            self.kill()
 
 
 class Border(pygame.sprite.Sprite):
@@ -160,10 +178,124 @@ class Border(pygame.sprite.Sprite):
             self.rect = pygame.Rect(x1, y1, x2 - x1, 1)
 
 
+def main():
+    global running, main_char, width, height, screen, clock, point_balls_count, points
+    screen.fill('black')
+    text_surface = fnt.render(f'Текущий счет: {points}', True, (255, 255, 255))
+    screen.blit(text_surface, (width // 2 - text_surface.get_width() // 2, 5))
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.VIDEORESIZE:
+            screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+            width, height = event.w, event.h
+            update()
+    keys = pygame.key.get_pressed()
+    if (keys[pygame.K_LEFT] or keys[pygame.K_a]) and not (
+            keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]):
+        main_char.left(2)
+    elif (keys[pygame.K_LEFT] or keys[pygame.K_a]) and (
+            keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]):
+        main_char.left(1)
+    if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and not (
+            keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]):
+        main_char.right(2)
+    elif (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and (
+            keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]):
+        main_char.right(1)
+    if (keys[pygame.K_UP] or keys[pygame.K_w]) and not (
+            keys[pygame.K_RIGHT] or keys[pygame.K_d] or keys[pygame.K_LEFT] or keys[pygame.K_a]):
+        main_char.up(2)
+    elif (keys[pygame.K_UP] or keys[pygame.K_w]) and (
+            keys[pygame.K_RIGHT] or keys[pygame.K_d] or keys[pygame.K_LEFT] or keys[pygame.K_a]):
+        main_char.up(1)
+    if (keys[pygame.K_DOWN] or keys[pygame.K_s]) and not (
+            keys[pygame.K_RIGHT] or keys[pygame.K_d] or keys[pygame.K_LEFT] or keys[pygame.K_a]):
+        main_char.down(2)
+    elif (keys[pygame.K_DOWN] or keys[pygame.K_s]) and (
+            keys[pygame.K_RIGHT] or keys[pygame.K_d] or keys[pygame.K_LEFT] or keys[pygame.K_a]):
+        main_char.down(1)
+
+    if point_balls_count <= 0:
+        for j in point_circles:
+            j.kill()
+        point_circles.empty()
+        for i in range(width * height // 30000):
+            Point_Balls.append(Pointballs())
+            point_balls_count += 1
+    healthbar.update()
+    all_sprites.draw(screen)
+    all_sprites.update()
+    pygame.display.flip()
+    clock.tick(200)
+
+
+def update():
+    global running, points, enemy_circles, main_char, width, height, point_balls_count
+    Enemy_balls.clear()
+    Point_Balls.clear()
+    main_char.kill()
+    main_character.empty()
+    main_char = Main_char()
+    for j in point_circles:
+        j.kill()
+    for j in enemy_circles:
+        j.kill()
+    for j in stars:
+        j.kill()
+    point_circles.empty()
+    enemy_circles.empty()
+    stars.empty()
+    for j in range(width * height // 72000):
+        Enemy_balls.append(
+            Enemy(random.randint(15, 20), random.randint(0, width), random.randint(0, height)))
+    for j in range(width * height // 10000):
+        Stars()
+    for j in range(width * height // 30000):
+        Point_Balls.append(Pointballs())
+        point_balls_count += 1
+    horizontal_borders.empty()
+    vertical_borders.empty()
+    Border(5, 5, width - 5, 5)
+    Border(5, height - 5, width - 5, height - 5)
+    Border(5, 5, 5, height - 5)
+    Border(width - 5, 5, width - 5, height - 5)
+
+
+def death_screen():
+    global screen, width, height
+    text = ["Вы проиграли :(", f'Ваш счет - {points}', 'Щелкните мышкой чтобы продолжить']
+    font = pygame.font.Font(None, 30)
+    screen.fill('black')
+    for i in range(len(text)):
+        text_surface = font.render(text[i], True, pygame.Color('white'))
+        screen.blit(text_surface,
+                    (width // 2 - text_surface.get_width() // 2, height // 2 - len(text) * 30 // 2 + i * 30))
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                return True
+            if event.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                width, height = event.w, event.h
+                update()
+                for i in range(len(text)):
+                    text_surface = font.render(text[i], True, pygame.Color('white'))
+                    screen.blit(text_surface,
+                                (
+                                    width // 2 - text_surface.get_width() // 2,
+                                    height // 2 - len(text) * 30 // 2 + i * 30))
+
+        pygame.display.flip()
+        clock.tick(60)
+
+
 if __name__ == '__main__':
     pygame.init()
-    width = 600
-    height = 600
     size = width, height
     screen = pygame.display.set_mode(size, RESIZABLE)
     clock = pygame.time.Clock()
@@ -173,58 +305,34 @@ if __name__ == '__main__':
     Border(width - 5, 5, width - 5, height - 5)
     Enemy_balls = []
     Stars_arr = []
+    Point_Balls = []
     for i in range(width * height // 72000):
         Enemy_balls.append(
             Enemy(random.randint(15, 20), random.randint(50, width - 50), random.randint(50, height - 50)))
     for i in range(width * height // 10000):
-        Stars(random.randint(50, width - 50), random.randint(50, height - 50))
+        Stars()
+    for i in range(width * height // 30000):
+        Point_Balls.append(Pointballs())
+        point_balls_count += 1
+
     main_char = Main_char()
     healthbar = Healthbar()
+    fnt = pygame.font.Font(None, 32)
+    text_surface = fnt.render(f'Текущий счет: {points}', True, (255, 255, 255))
+    screen.blit(text_surface, (width // 2 - text_surface.get_width() // 2, 5))
     running = True
+    start_tick = None
     while running:
-        screen.fill('black')
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.VIDEORESIZE:
-                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
-                width, height = event.w, event.h
-                Enemy_balls.clear()
-                main_char.kill()
-                main_character.empty()
-                main_char = Main_char()
+        main()
+        if lifes <= 0:
+            text_surface = fnt.render(f'Текущий счет: {points}', True, (255, 255, 255))
+            screen.blit(text_surface, (width // 2 - text_surface.get_width() // 2, 5))
+            if death_screen():
+                running = True
+                lifes = 3
+                point_balls_count = 0
+                points = 0
+                update()
 
-                for i in enemy_circles:
-                    i.kill()
-                for i in stars:
-                    i.kill()
-                enemy_circles.empty()
-                stars.empty()
-                for i in range(width * height // 72000):
-                    Enemy_balls.append(
-                        Enemy(random.randint(15, 20), random.randint(0, width), random.randint(0, height)))
-
-                for i in range(width * height // 10000):
-                    Stars(random.randint(0, width), random.randint(0, height))
-                horizontal_borders.empty()
-                vertical_borders.empty()
-                Border(5, 5, width - 5, 5)
-                Border(5, height - 5, width - 5, height - 5)
-                Border(5, 5, 5, height - 5)
-                Border(width - 5, 5, width - 5, height - 5)
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            main_char.left()
-        elif keys[pygame.K_RIGHT]:
-            main_char.right()
-        if keys[pygame.K_UP]:
-            main_char.up()
-        elif keys[pygame.K_DOWN]:
-            main_char.down()
-
-        healthbar.update()
-        all_sprites.draw(screen)
-        all_sprites.update()
-        pygame.display.flip()
-        clock.tick(300)
     pygame.quit()
+    sys.exit()
