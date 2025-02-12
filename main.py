@@ -53,7 +53,7 @@ class Enemy(Ball):
             self.vy = random.randint(-1, 1)
 
     def update(self):
-
+        dist = 50
         if pygame.sprite.spritecollideany(self, horizontal_borders):
             self.vy = -self.vy
             self.rect = self.rect.move(self.vx, self.vy)
@@ -69,13 +69,13 @@ class Enemy(Ball):
         curcircle.empty()
         circles.add(self)
         if self.rect.x <= 0:
-            self.rect.x = 50
+            self.rect.x = dist
         if self.rect.y <= 0:
-            self.rect.y = 50
+            self.rect.y = dist
         if self.rect.x >= width:
-            self.rect.x = width - 50
+            self.rect.x = width - dist
         if self.rect.y >= height:
-            self.rect.y = height - 50
+            self.rect.y = height - dist
 
 
 class Stars(Ball):
@@ -91,7 +91,7 @@ class Main_char(Ball):
     def __init__(self):
         super().__init__(15, width // 2 - 15, height // 2 - 15)
         self.add(main_character)
-        pygame.draw.circle(self.image, pygame.Color('yellow'),
+        pygame.draw.circle(self.image, pygame.Color('green'),
                            (self.radius, self.radius), self.radius)
         self.v = 1
 
@@ -294,6 +294,38 @@ def death_screen():
         clock.tick(60)
 
 
+def start_screen():
+    global screen, width, height
+    text = ['Щелкните мышкой чтобы начать']
+    font = pygame.font.Font(None, 30)
+    screen.fill('black')
+    for i in range(len(text)):
+        text_surface = font.render(text[i], True, pygame.Color('white'))
+        screen.blit(text_surface,
+                    (width // 2 - text_surface.get_width() // 2, height // 2 - len(text) * 30 // 2 + i * 30))
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                return True
+            if event.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                width, height = event.w, event.h
+                update()
+                for i in range(len(text)):
+                    text_surface = font.render(text[i], True, pygame.Color('white'))
+                    screen.blit(text_surface,
+                                (
+                                    width // 2 - text_surface.get_width() // 2,
+                                    height // 2 - len(text) * 30 // 2 + i * 30))
+
+        pygame.display.flip()
+        clock.tick(60)
+
+
 if __name__ == '__main__':
     pygame.init()
     size = width, height
@@ -322,6 +354,7 @@ if __name__ == '__main__':
     screen.blit(text_surface, (width // 2 - text_surface.get_width() // 2, 5))
     running = True
     start_tick = None
+    start_screen()
     while running:
         main()
         if lifes <= 0:
